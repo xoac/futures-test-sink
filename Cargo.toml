@@ -4,6 +4,7 @@ version = "0.1.0"
 authors = ["Sylwester Rąpała <sylwesterrapala@outlook.com>"]
 edition = "2018"
 license = "MIT OR Apache-2.0"
+repository = "https://github.com/xoac/futures-test-sink"
 
 # This is a list of up to five keywords that describe this crate. Keywords
 # are searchable on crates.io, and you may choose any words that would
