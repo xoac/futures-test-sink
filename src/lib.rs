@@ -103,6 +103,8 @@
 //! ```
 //!
 
+#![deny(missing_docs)]
+
 pub mod fuse_last;
 
 use futures::never::Never;
