@@ -1,5 +1,6 @@
 [package]
 name = "futures-test-sink"
+description = "Test utilities for futures::sink"
 version = "0.1.0"
 authors = ["Sylwester Rąpała <sylwesterrapala@outlook.com>"]
 edition = "2018"
