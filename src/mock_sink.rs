@@ -145,9 +145,8 @@ where
         self.check_panic();
         let mut this = Pin::into_inner(self);
         this.can_start_send = false;
-        match this.ready_fallback.next() {
-            Some(e) => return Poll::Ready(Err(e)),
-            None => (),
+        if let Some(e) = this.ready_fallback.next() {
+            return Poll::Ready(Err(e));
         }
 
         if this.max_item > this.item_cnt {
@@ -172,9 +171,8 @@ where
         }
 
         let this = Pin::into_inner(self);
-        match this.send_fallback.next() {
-            Some(e) => return Err(e),
-            None => (),
+        if let Some(e) = this.send_fallback.next() {
+            return Err(e);
         }
 
         this.item_cnt += 1;
