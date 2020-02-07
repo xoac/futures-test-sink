@@ -109,7 +109,6 @@ pub mod fuse_last;
 
 use futures::never::Never;
 use futures::sink::Sink;
-use pin_project::{pin_project, project};
 use std::iter::{repeat, successors, Repeat};
 use std::marker::PhantomData;
 use std::{
@@ -129,7 +128,6 @@ fn reverse<E>(poll: &Poll<Result<(), E>>) -> Option<Poll<Result<(), E>>> {
 /// For details see [from_iter()].
 ///
 /// [from_iter]:from_iter
-#[pin_project]
 pub struct SinkFeedback<E, FI, SSI, Item> {
     poll_fallback: FI,
     start_send_fallback: SSI,
@@ -154,7 +152,10 @@ pub fn ok<Item>() -> Drain<Item> {
 ///
 /// Inspirited by
 /// [InterleavePending](https://docs.rs/futures-test/0.3.3/futures_test/stream/struct.InterleavePending.html) from futures-test crate.
-pub fn interleave_pending<Item>() -> impl Sink<Item, Error = Never> {
+pub fn interleave_pending<Item>() -> impl Sink<Item, Error = Never>
+where
+    Item: Unpin,
+{
     let poll_fallback = successors(Some(Poll::Ready(Ok(()))), reverse);
     let ss_value: Result<(), Never> = Ok(());
     let start_send_fallback = repeat(ss_value);
@@ -180,8 +181,10 @@ pub fn from_iter<Item, FI, SSI, E>(
     start_send_fallback: SSI,
 ) -> impl Sink<Item, Error = E>
 where
-    FI: Iterator<Item = Poll<Result<(), E>>>,
-    SSI: Iterator<Item = Result<(), E>>,
+    FI: Iterator<Item = Poll<Result<(), E>>> + Unpin,
+    SSI: Iterator<Item = Result<(), E>> + Unpin,
+    E: Unpin,
+    Item: Unpin,
 {
     SinkFeedback {
         poll_fallback,
@@ -193,15 +196,14 @@ where
 
 impl<E, FI, SSI, Item> Sink<Item> for SinkFeedback<E, FI, SSI, Item>
 where
-    Self: Sized,
+    Self: Sized + Unpin,
     FI: Iterator<Item = Poll<Result<(), E>>>,
     SSI: Iterator<Item = Result<(), E>>,
 {
     type Error = E;
 
-    #[project]
-    fn poll_ready(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
-        let this = self.as_mut().project();
+    fn poll_ready(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
+        let this = Pin::into_inner(self);
         match this.poll_fallback.next().unwrap() {
             Poll::Ready(t) => Poll::Ready(t),
             Poll::Pending => {
@@ -211,8 +213,8 @@ where
         }
     }
 
-    fn start_send(mut self: Pin<&mut Self>, _item: Item) -> Result<(), Self::Error> {
-        self.as_mut().project().start_send_fallback.next().unwrap()
+    fn start_send(self: Pin<&mut Self>, _item: Item) -> Result<(), Self::Error> {
+        Pin::into_inner(self).start_send_fallback.next().unwrap()
     }
 
     fn poll_flush(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {

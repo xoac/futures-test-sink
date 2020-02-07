@@ -47,7 +47,6 @@ categories = ["development-tools::testing", "asynchronous"]
 
 [dependencies]
 futures = "0.3"
-pin-project = "0.4"
 
 [dev-dependencies]
 async-task = "1.3"
