@@ -9,8 +9,8 @@ This crate provide a handy mock sink implementations that can be used test own S
 
 ## Examples
 
-### :`MockSink` allow to create a handy tests
-This example contains a 3 tests. See documentation of `MockSink` for details.
+### `SinkMock` allow to create a handy tests
+This example contains a 3 tests. See documentation of `SinkMock` for details.
 ```rust
 use futures::{
     self,
@@ -61,7 +61,7 @@ error();
 
 ### `SinkFeedback` mock provide a full control of returned items.
 
-You should first use `MockSink` if this doesn't this one may be useful.
+You should first use `SinkMock` if this doesn't this one may be useful.
 
 ```rust
 use async_task::waker_fn;

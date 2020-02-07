@@ -6,17 +6,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 ### Added
-- `MockSink` that behave more like real sink and cover a better use case (compare to `SinkFeedback`).
+- ...
 ### Changed
 - ...
 ### Deprecated
 - ...
 ### Removed
-- `pin_project` dependency
+- ...
 ### Fixed
 - ...
 ### Security:
 - ...
+
+
+## [0.1.1] - 2020-02-07
+### Added
+- `SinkMock` that behave more like real sink and cover a better use case (compare to `SinkFeedback`).
+### Removed
+- `pin_project` dependency
 
 
 ## [0.1.0] - 2020-02-07
@@ -26,7 +33,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `SinkFeedback` that can be created with `from_iter()` function.
 - `drain()` and `interleave_pending()` creators.
 
-[Unreleased]: https://github.com/xoac//futures-test-sink/compare/v0.1.0...HEAD
-[0.1.0]: https://github.com/xoac//futures-test-sink/releases/tag/v0.1.0
+[Unreleased]: https://github.com/xoac//futures-test-sink/compare/v0.1.1...HEAD
+[0.1.1]: https://github.com/xoac/futures-test-sink/releases/tag/v0.1.1
+[0.1.0]: https://github.com/xoac/futures-test-sink/releases/tag/v0.1.0
 
 

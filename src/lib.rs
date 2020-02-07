@@ -2,8 +2,8 @@
 //!
 //! # Examples
 //!
-//! ## :`MockSink` allow to create a handy tests
-//! This example contains a 3 tests. See documentation of `MockSink` for details.
+//! ## `SinkMock` allow to create a handy tests
+//! This example contains a 3 tests. See documentation of `SinkMock` for details.
 //! ```
 //! use futures::{
 //!     self,
@@ -54,7 +54,7 @@
 //!
 //! ## `SinkFeedback` mock provide a full control of returned items.
 //!
-//! You should first use `MockSink` if this doesn't this one may be useful.
+//! You should first use `SinkMock` if this doesn't this one may be useful.
 //!
 //! ```
 //! use async_task::waker_fn;
