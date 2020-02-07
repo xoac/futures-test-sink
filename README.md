@@ -1,7 +1,7 @@
 [![crates.io](https://img.shields.io/crates/v/futures-test-sink.svg)](https://crates.io/crates/futures-test-sink)
 [![Documentation](https://docs.rs/futures-test-sink/badge.svg)](https://docs.rs/futures-test-sink/)
 ![CI master](https://github.com/xoac/futures-test-sink/workflows/Continuous%20integration/badge.svg?branch=master)
-
+![Maintenance](https://img.shields.io/badge/maintenance-experimental-blue.svg)
 
 # futures-test-sink
 
@@ -12,51 +12,51 @@ This crate provide a handy mock sink implementations that can be used test own S
 ### :`MockSink` allow to create a handy tests
 This example contains a 3 tests. See documentation of `MockSink` for details.
 ```rust
-use async_task::waker_fn;
+use futures::{
+    self,
+    never::Never,
+    stream::{self, StreamExt},
+};
+use futures_test_sink::SinkMock;
 use std::iter;
-use std::{
-  task::{Poll, Context},
+use std::task::{Context, Poll};
+
+fn drain_test() {
+    let e = iter::repeat::<Poll<Result<(), Never>>>(Poll::Ready(Ok(())));
+    let sink = SinkMock::with_flush_feedback(e);
+
+    let stream =
+        stream::iter(vec![Ok::<u8, Never>(5u8), Ok(7), Ok(9), Ok(77), Ok(79)].into_iter());
+    let send_all = stream.forward(sink);
+    assert_eq!(Ok(()), futures::executor::block_on(send_all));
 }
-use futures::{self, stream};
 
-   fn drain_test() {
-       let e = iter::repeat::<Poll<Result<(), Never>>>(Poll::Ready(Ok(())));
-       let sink = SinkMock::with_flush_feedback(e);
+fn interleave_pending() {
+    let e = vec![Poll::Ready(Ok::<_, Never>(())), Poll::Pending]
+        .into_iter()
+        .cycle();
+    let sink = SinkMock::with_flush_feedback(e);
 
-       let stream =
-           stream::iter(vec![Ok::<u8, Never>(5u8), Ok(7), Ok(9), Ok(77), Ok(79)].into_iter());
-       let send_all = stream.forward(sink);
-       assert_eq!(Ok(()), futures::executor::block_on(send_all));
-   }
+    let stream =
+        stream::iter(vec![Ok::<u8, Never>(5u8), Ok(7), Ok(9), Ok(77), Ok(79)].into_iter());
+    let send_all = stream.forward(sink);
+    assert_eq!(Ok(()), futures::executor::block_on(send_all));
+}
 
-   fn interleave_pending() {
-       let e = vec![Poll::Ready(Ok::<_, Never>(())), Poll::Pending]
-           .into_iter()
-           .cycle();
-       let sink = SinkMock::with_flush_feedback(e);
+fn error() {
+    let e = vec![Poll::Ready(Ok(())), Poll::Pending, Poll::Ready(Err(()))]
+        .into_iter()
+        .cycle();
+    let sink = SinkMock::with_flush_feedback(e);
 
-       let stream =
-           stream::iter(vec![Ok::<u8, Never>(5u8), Ok(7), Ok(9), Ok(77), Ok(79)].into_iter());
-       let send_all = stream.forward(sink);
-       assert_eq!(Ok(()), futures::executor::block_on(send_all));
-   }
+    let stream = stream::iter(vec![Ok(5u8), Ok(7), Ok(9), Ok(77), Ok(79)].into_iter());
+    let send_all = stream.forward(sink);
+    assert_eq!(Err(()), futures::executor::block_on(send_all));
+}
 
-   fn error() {
-       let e = vec![Poll::Ready(Ok(())), Poll::Pending, Poll::Ready(Err(()))]
-           .into_iter()
-           .cycle();
-       let sink = SinkMock::with_flush_feedback(e);
-
-       let stream = stream::iter(vec![Ok(5u8), Ok(7), Ok(9), Ok(77), Ok(79)].into_iter());
-       let send_all = stream.forward(sink);
-       assert_eq!(Err(()), futures::executor::block_on(send_all));
-   }
-
-   fn main() {
-    drain_test();
-    interleave_pending();
-    error();
-   }
+drain_test();
+interleave_pending();
+error();
 ```
 
 ### `SinkFeedback` mock provide a full control of returned items.
