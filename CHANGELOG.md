@@ -6,7 +6,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 ### Added
-- ...
+- `MockSink` that behave more like real sink and cover a better use case (compare to `SinkFeedback`).
 ### Changed
 - ...
 ### Deprecated

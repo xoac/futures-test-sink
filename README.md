@@ -9,15 +9,69 @@ This crate provide a handy mock sink implementations that can be used test own S
 
 ## Examples
 
+### :`MockSink` allow to create a handy tests
+This example contains a 3 tests. See documentation of `MockSink` for details.
 ```rust
-use futures_test_sink::from_iter;
+use async_task::waker_fn;
+use std::iter;
+use std::{
+  task::{Poll, Context},
+}
+use futures::{self, stream};
+
+   fn drain_test() {
+       let e = iter::repeat::<Poll<Result<(), Never>>>(Poll::Ready(Ok(())));
+       let sink = SinkMock::with_flush_feedback(e);
+
+       let stream =
+           stream::iter(vec![Ok::<u8, Never>(5u8), Ok(7), Ok(9), Ok(77), Ok(79)].into_iter());
+       let send_all = stream.forward(sink);
+       assert_eq!(Ok(()), futures::executor::block_on(send_all));
+   }
+
+   fn interleave_pending() {
+       let e = vec![Poll::Ready(Ok::<_, Never>(())), Poll::Pending]
+           .into_iter()
+           .cycle();
+       let sink = SinkMock::with_flush_feedback(e);
+
+       let stream =
+           stream::iter(vec![Ok::<u8, Never>(5u8), Ok(7), Ok(9), Ok(77), Ok(79)].into_iter());
+       let send_all = stream.forward(sink);
+       assert_eq!(Ok(()), futures::executor::block_on(send_all));
+   }
+
+   fn error() {
+       let e = vec![Poll::Ready(Ok(())), Poll::Pending, Poll::Ready(Err(()))]
+           .into_iter()
+           .cycle();
+       let sink = SinkMock::with_flush_feedback(e);
+
+       let stream = stream::iter(vec![Ok(5u8), Ok(7), Ok(9), Ok(77), Ok(79)].into_iter());
+       let send_all = stream.forward(sink);
+       assert_eq!(Err(()), futures::executor::block_on(send_all));
+   }
+
+   fn main() {
+    drain_test();
+    interleave_pending();
+    error();
+   }
+```
+
+### `SinkFeedback` mock provide a full control of returned items.
+
+You should first use `MockSink` if this doesn't this one may be useful.
+
+```rust
 use async_task::waker_fn;
 use futures::sink::Sink;
+use futures_test_sink::from_iter;
 use std::{
-  pin::Pin,
-  task::{Poll, Context},
-  sync::{Arc, atomic}
-  };
+    pin::Pin,
+    sync::{atomic, Arc},
+    task::{Context, Poll},
+};
 
 // create a Context
 let wake_cnt = Arc::new(atomic::AtomicUsize::new(0));
@@ -61,16 +115,18 @@ assert_eq!(r4, Poll::Ready(Err(12)));
 assert_eq!(1, cnt.load(atomic::Ordering::SeqCst));
 ```
 
-You can be interested in [FuseLast] container for Iterator.
+You can be interested in [FuseLast](fuse_last::FuseLast) container for Iterator.
+
+
 ```rust
-use futures_test_sink::{from_iter, fuse_last::IteratorExt};
 use async_task::waker_fn;
 use futures::sink::Sink;
+use futures_test_sink::{from_iter, fuse_last::IteratorExt};
 use std::{
-  pin::Pin,
-  task::{Poll, Context},
-  sync::{Arc, atomic}
-  };
+    pin::Pin,
+    sync::{atomic, Arc},
+    task::{Context, Poll},
+};
 
 // create a Context
 let wake_cnt = Arc::new(atomic::AtomicUsize::new(0));
@@ -85,7 +141,8 @@ let poll_fallback = vec![
     Poll::Ready(Err(12)),
     Poll::Ready(Ok(())),
 ]
-.into_iter().fuse_last();
+.into_iter()
+.fuse_last();
 let start_send_fallback = vec![Ok::<_, u32>(())].into_iter().cycle();
 // ours sink implementation
 let mut s = from_iter(poll_fallback, start_send_fallback);
@@ -108,7 +165,6 @@ assert_eq!(r3, Poll::Ready(Ok(())));
 let r5 = Pin::new(&mut s).poll_ready(&mut cx);
 assert_eq!(r3, Poll::Ready(Ok(())));
 ```
-
 
 ## License
 

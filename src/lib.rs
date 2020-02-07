@@ -2,15 +2,69 @@
 //!
 //! # Examples
 //!
+//! ## :`MockSink` allow to create a handy tests
+//! This example contains a 3 tests. See documentation of `MockSink` for details.
 //! ```
-//! use futures_test_sink::from_iter;
+//! use async_task::waker_fn;
+//! use std::iter;
+//! use std::{
+//!   task::{Poll, Context},
+//! }
+//! use futures::{self, stream};
+//!
+//!    fn drain_test() {
+//!        let e = iter::repeat::<Poll<Result<(), Never>>>(Poll::Ready(Ok(())));
+//!        let sink = SinkMock::with_flush_feedback(e);
+//!
+//!        let stream =
+//!            stream::iter(vec![Ok::<u8, Never>(5u8), Ok(7), Ok(9), Ok(77), Ok(79)].into_iter());
+//!        let send_all = stream.forward(sink);
+//!        assert_eq!(Ok(()), futures::executor::block_on(send_all));
+//!    }
+//!
+//!    fn interleave_pending() {
+//!        let e = vec![Poll::Ready(Ok::<_, Never>(())), Poll::Pending]
+//!            .into_iter()
+//!            .cycle();
+//!        let sink = SinkMock::with_flush_feedback(e);
+//!
+//!        let stream =
+//!            stream::iter(vec![Ok::<u8, Never>(5u8), Ok(7), Ok(9), Ok(77), Ok(79)].into_iter());
+//!        let send_all = stream.forward(sink);
+//!        assert_eq!(Ok(()), futures::executor::block_on(send_all));
+//!    }
+//!
+//!    fn error() {
+//!        let e = vec![Poll::Ready(Ok(())), Poll::Pending, Poll::Ready(Err(()))]
+//!            .into_iter()
+//!            .cycle();
+//!        let sink = SinkMock::with_flush_feedback(e);
+//!
+//!        let stream = stream::iter(vec![Ok(5u8), Ok(7), Ok(9), Ok(77), Ok(79)].into_iter());
+//!        let send_all = stream.forward(sink);
+//!        assert_eq!(Err(()), futures::executor::block_on(send_all));
+//!    }
+//!
+//!    fn main() {
+//!     drain_test();
+//!     interleave_pending();
+//!     error();
+//!    }
+//! ```
+//!
+//! ## `SinkFeedback` mock provide a full control of returned items.
+//!
+//! You should first use `MockSink` if this doesn't this one may be useful.
+//!
+//! ```
 //! use async_task::waker_fn;
 //! use futures::sink::Sink;
+//! use futures_test_sink::from_iter;
 //! use std::{
-//!   pin::Pin,
-//!   task::{Poll, Context},
-//!   sync::{Arc, atomic}
-//!   };
+//!     pin::Pin,
+//!     sync::{atomic, Arc},
+//!     task::{Context, Poll},
+//! };
 //!
 //! // create a Context
 //! let wake_cnt = Arc::new(atomic::AtomicUsize::new(0));
@@ -54,16 +108,18 @@
 //! assert_eq!(1, cnt.load(atomic::Ordering::SeqCst));
 //! ```
 //!
-//! You can be interested in [FuseLast] container for Iterator.
+//! You can be interested in [FuseLast](fuse_last::FuseLast) container for Iterator.
+//!
+//!
 //! ```
-//! use futures_test_sink::{from_iter, fuse_last::IteratorExt};
 //! use async_task::waker_fn;
 //! use futures::sink::Sink;
+//! use futures_test_sink::{from_iter, fuse_last::IteratorExt};
 //! use std::{
-//!   pin::Pin,
-//!   task::{Poll, Context},
-//!   sync::{Arc, atomic}
-//!   };
+//!     pin::Pin,
+//!     sync::{atomic, Arc},
+//!     task::{Context, Poll},
+//! };
 //!
 //! // create a Context
 //! let wake_cnt = Arc::new(atomic::AtomicUsize::new(0));
@@ -78,7 +134,8 @@
 //!     Poll::Ready(Err(12)),
 //!     Poll::Ready(Ok(())),
 //! ]
-//! .into_iter().fuse_last();
+//! .into_iter()
+//! .fuse_last();
 //! let start_send_fallback = vec![Ok::<_, u32>(())].into_iter().cycle();
 //! // ours sink implementation
 //! let mut s = from_iter(poll_fallback, start_send_fallback);
@@ -101,11 +158,13 @@
 //! let r5 = Pin::new(&mut s).poll_ready(&mut cx);
 //! assert_eq!(r3, Poll::Ready(Ok(())));
 //! ```
-//!
 
 #![deny(missing_docs)]
 
 pub mod fuse_last;
+mod mock_sink;
+
+pub use mock_sink::SinkMock;
 
 use futures::never::Never;
 use futures::sink::Sink;
@@ -176,6 +235,9 @@ where
 ///
 /// If `poll_fallback` or `start_send_fallback` iterator has no more elements. To prevent this use
 /// [cycle] method.
+///
+/// [cycle]: https://doc.rust-lang.org/std/iter/trait.Iterator.html#method.cycle
+/// [next]: https://doc.rust-lang.org/std/iter/trait.Iterator.html#tymethod.next
 pub fn from_iter<Item, FI, SSI, E>(
     poll_fallback: FI,
     start_send_fallback: SSI,
