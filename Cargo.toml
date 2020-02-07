@@ -1,7 +1,7 @@
 [package]
 name = "futures-test-sink"
 description = "Test utilities for futures::sink"
-version = "0.1.0"
+version = "0.1.1"
 authors = ["Sylwester Rąpała <sylwesterrapala@outlook.com>"]
 edition = "2018"
 license = "MIT OR Apache-2.0"
